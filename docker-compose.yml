@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  dashboard-api:
+    build:
+      context: ./agrofel-dashboard-api
+    env_file:
+      - ./agrofel-dashboard-api/.env
+    networks:
+      - chatwoot_net
+
+  dashboard-frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend-dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "3010:80"
+    networks:
+      - chatwoot_net
+
+networks:
+  chatwoot_net:
+    external:
+      name: "chatwoot_default"

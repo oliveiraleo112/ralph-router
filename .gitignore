@@ -1,0 +1,31 @@
+# Logs
+ralph-*.log
+ralph-iter*.log
+*.log
+
+# Backups
+*.bak
+*.bak2
+
+# Temp files
+.last-branch
+.last-tool-used
+.ralph-workers/
+
+# Runtime PRD (keep only example)
+prd.json
+progress.txt
+hello.txt
+
+# Reports (generated)
+reports/
+
+# Archives (generated)
+archive/
+
+# OS
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+*.pyo

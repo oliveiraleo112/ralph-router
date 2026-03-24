@@ -1,0 +1,81 @@
+{
+  "project": "RalphParallelFix",
+  "branchName": "ralph/fix-parallel",
+  "description": "Fix critical bugs in ralph.sh parallel execution (run_parallel function). The bugs cause ENOENT uv_cwd errors when workers run inside git worktrees that get cleaned up, and prevent prd.json updates from propagating back to the main branch.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix worker log path and variable ordering in run_parallel",
+      "description": "In the run_parallel function in ralph.sh, the worker subshell has a bug: line 408 references $wt_log before it is defined on line 410. Also the log file path must be defined OUTSIDE the subshell (before the parenthesis) and must point to SCRIPT_DIR not the worktree path, so logs survive worktree cleanup. Fix the variable ordering and move wt_log declaration before the subshell.",
+      "acceptanceCriteria": [
+        "wt_log is defined BEFORE the subshell opening parenthesis '('",
+        "wt_log path is ${SCRIPT_DIR}/ralph-worker${i}-TIMESTAMP.log (NOT inside worktree)",
+        "The safety check 'if [[ ! -d $wt_path ]]' references $wt_log correctly",
+        "bash -n ralph.sh passes with no syntax errors"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Fixed: wt_log defined before the subshell; logs written to SCRIPT_DIR; bash -n passes."
+    },
+    {
+      "id": "US-002",
+      "title": "Add __pycache__ and *.pyc to .gitignore",
+      "description": "Workers running python compileall create __pycache__ directories that get committed. Add __pycache__/, *.pyc, and *.pyo patterns to .gitignore. Remove any existing __pycache__ from git tracking.",
+      "acceptanceCriteria": [
+        ".gitignore contains __pycache__/ pattern",
+        ".gitignore contains *.pyc and *.pyo patterns",
+        "git ls-files shows no __pycache__ or .pyc files tracked",
+        "git rm -r --cached __pycache__ run if needed"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Updated .gitignore; removed tracked __pycache__ and .pyc/.pyo files"
+    },
+    {
+      "id": "US-003",
+      "title": "Prevent cleanup_worktrees trap from killing active workers",
+      "description": "The INT/TERM trap on line 375 calls cleanup_worktrees which removes worktree directories. If a worker subshell is still running inside a worktree, removing it causes ENOENT uv_cwd for all Node.js tools (copilot, codex, qwen, cline, gemini, claude). Fix: the trap should first kill all worker PIDs (stored in a global array), wait for them, THEN cleanup worktrees. Create a global WORKER_PIDS array that run_parallel populates.",
+      "acceptanceCriteria": [
+        "A global WORKER_PIDS=() array exists near the top of the script",
+        "run_parallel populates WORKER_PIDS with background PIDs",
+        "The INT/TERM trap first kills all WORKER_PIDS, waits, then calls cleanup_worktrees",
+        "run_parallel clears WORKER_PIDS after cleanup",
+        "bash -n ralph.sh passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Fixed: trap now kills worker PIDs and waits before cleanup; WORKER_PIDS array added in ralph.sh"
+    },
+    {
+      "id": "US-004",
+      "title": "Add DEPLOY.md for the dashboard project",
+      "description": "Create a DEPLOY.md file with complete deployment documentation: prerequisites, setup-env.sh usage, docker compose build/up commands, how to get Chatwoot user_access_token, auth flow explanation, architecture diagram (ASCII), and troubleshooting section. The dashboard runs on port 3010, API on 8000 internal, connects to Chatwoot via minha_rede Docker network.",
+      "acceptanceCriteria": [
+        "DEPLOY.md exists at repo root",
+        "Contains: prerequisites, quick start, setup-env.sh usage",
+        "Contains: how to get Chatwoot user_access_token",
+        "Contains: authentication flow explanation",
+        "Contains: architecture diagram",
+        "Contains: troubleshooting section",
+        "File is well-formatted markdown"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Chatwoot URL: https://chatwoot.agrofel.com.br, Frontend port: 3010, Backend port: 8000, Network: minha_rede, Auth: Bearer token validated via GET /api/v1/profile"
+    },
+    {
+      "id": "US-005",
+      "title": "Validate parallel execution end-to-end with dry-run",
+      "description": "Run bash -n ralph.sh to validate syntax. Then run ./ralph.sh --tool auto --dry-run --parallel 2 3 and verify it completes without errors. Update prd.json marking this story passed only if both validations succeed. Commit all changes.",
+      "acceptanceCriteria": [
+        "bash -n ralph.sh exits with code 0",
+        "./ralph.sh --tool auto --dry-run --parallel 2 3 completes without errors",
+        "No ENOENT or uv_cwd errors in output",
+        "All 5 stories pass in prd.json"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Validated: bash -n passed and ./ralph.sh --tool auto --dry-run --parallel 2 3 completed without errors."
+    }
+  ]
+}
